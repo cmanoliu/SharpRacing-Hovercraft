@@ -9,6 +9,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DummyTcpServerHovercraft", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ESP32ap-hovercraft", "ESP32ap-hovercraft\ESP32ap-hovercraft.vcxproj", "{C5F80730-F44F-4478-BDAE-6634EFC2CA88}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{444B7573-FC0F-470F-9B65-034CB82A03E1}"
+	ProjectSection(SolutionItems) = preProject
+		ESP32ap-hovercraft\ESP32ap-hovercraft.ino = ESP32ap-hovercraft\ESP32ap-hovercraft.ino
+		ESP32ap-hovercraft\Secrets.h = ESP32ap-hovercraft\Secrets.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

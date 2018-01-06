@@ -85,6 +85,7 @@
     <Text Include="board.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Secrets.h" />
     <ClInclude Include="__vm\.ESP32ap-hovercraft.vsarduino.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -24,5 +24,8 @@
     <ClInclude Include="__vm\.ESP32ap-hovercraft.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Secrets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
