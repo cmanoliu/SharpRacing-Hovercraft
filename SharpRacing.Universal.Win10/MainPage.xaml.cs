@@ -23,7 +23,7 @@ namespace SharpRacing.Universal.Win10
 {
     public sealed partial class MainPage : Page
     {
-        private const string DefaultHost = "127.0.0.1"; //"192.168.4.1"; //
+        private const string DefaultHost = "127.0.0.1"; //"192.168.4.1";
 
         private const string Port = "8077";
 

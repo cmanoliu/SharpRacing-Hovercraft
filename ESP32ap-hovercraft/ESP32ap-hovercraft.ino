@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include "Secrets.h"
 
-const char *ssid = "#racing";
+const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASSWORD; //defined in Secrets.h
 
 //#define DEBUG

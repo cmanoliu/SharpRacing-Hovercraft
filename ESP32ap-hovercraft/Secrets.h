@@ -10,6 +10,7 @@
 #endif
 
 //add this file to .gitignore so that your personal data is not shared
-#define WIFI_PASSWORD "add this file to .gitignore then replace this text with your password" 
+#define WIFI_SSID "#racing_replace_with_your_ssid"
+#define WIFI_PASSWORD "replace_with_your_password" 
 
 #endif
