@@ -4,17 +4,37 @@ namespace SharpRacing.Universal.Win10
 {
     public sealed partial class SetupDialog : ContentDialog
     {
-        public const string DefaultEscSetupText = "500;16;0;100;32767;65535";
+        // 500Hz | 16bit | 0 ... 100 | 32767 ... 65535 -> pulse is 1ms ... 2ms 
+        private const string DefaultEscSetupText = "500;16;0;100;32767;65535";
 
-        public const string DefaultServoSetupText = "500;16;0;100;32767;65535";
+        // 500Hz | 16bit | 0 ... 100 | 32767 ... 65535 -> pulse is 1ms ... 2ms 
+        private const string DefaultServoSetupText = "500;16;0;100;32767;65535";
 
-        public const string DefaultSocket = "192.168.4.1:8077";
+        private const string DefaultSocket = "192.168.4.1:8077";
 
-        public const string DefaultControlIntervalMilliseconds = "0";
+        private const string DefaultControlIntervalMilliseconds = "0";
 
-        public const string DefaultLiftPulseCorrections = "0;1024";
+        private const string DefaultLiftPulsesRatios = "100;100";
 
-        public const string DefaultPropPulseCorrections = "0;512";
+        private const string DefaultPropPulsesRatios = "100;100";
+
+        private const string DefaultServoPulseCorrection = "0";
+
+        private string _socketBackup;
+
+        private string _liftSetupBackup;
+
+        private string _propSetupBackup;
+
+        private string _servoSetupBackup;
+
+        private string _controlIntervalMillisecondsBackup;
+
+        private string _liftPulseRatiosBackup;
+
+        private string _propPulseRatiosBackup;
+
+        private string _servoPulseCorrectionBackup;
 
         public SetupDialog()
         {
@@ -27,8 +47,9 @@ namespace SharpRacing.Universal.Win10
             servoSetupTextBox.Text = DefaultServoSetupText;
             controlIntervalMillisecondsTextBox.Text = DefaultControlIntervalMilliseconds;
 
-            liftPulseCorrectionsTextBox.Text = DefaultLiftPulseCorrections;
-            propPulseCorrectionsTextBox.Text = DefaultPropPulseCorrections;
+            liftPulsesRatiosTextBox.Text = DefaultLiftPulsesRatios;
+            propPulsesRatiosTextBox.Text = DefaultPropPulsesRatios;
+            servoPulseCorrectionTextBox.Text = DefaultServoPulseCorrection;
         }
 
         public string SocketAddress
@@ -61,57 +82,48 @@ namespace SharpRacing.Universal.Win10
             set { controlIntervalMillisecondsTextBox.Text = value; }
         }
 
-        public string LiftPulseCorrections
+        public string LiftPulsesRatios
         {
-            get { return liftPulseCorrectionsTextBox.Text; }
-            set { liftPulseCorrectionsTextBox.Text = value; }
+            get { return liftPulsesRatiosTextBox.Text; }
+            set { liftPulsesRatiosTextBox.Text = value; }
         }
 
-        public string PropPulseCorrections
+        public string PropPulsesRatios
         {
-            get { return propPulseCorrectionsTextBox.Text; }
-            set { propPulseCorrectionsTextBox.Text = value; }
+            get { return propPulsesRatiosTextBox.Text; }
+            set { propPulsesRatiosTextBox.Text = value; }
         }
 
-        public string ServoCorrection
+        public string ServoPulseCorrection
         {
-            get { return servoCorrectionTextBox.Text; }
-            set { servoCorrectionTextBox.Text = value; }
+            get { return servoPulseCorrectionTextBox.Text; }
+            set { servoPulseCorrectionTextBox.Text = value; }
         }
-
-        string backupSocket;
-        string backupLiftSetup;
-        string backupPropSetup;
-        string backupServoSetup;
-        string backupControlIntervalMilliseconds;
-        string backupLiftPulseCorrections;
-        string backupPropPulseCorrections;
-        string backupServoCorrection;
 
         private void ContentDialog_Opened(ContentDialog sender, ContentDialogOpenedEventArgs args)
         {
-            backupSocket = socketTextBox.Text;
-            backupLiftSetup = liftSetupTextBox.Text;
-            backupPropSetup = propSetupTextBox.Text;
-            backupServoSetup = servoSetupTextBox.Text;
-            backupControlIntervalMilliseconds = controlIntervalMillisecondsTextBox.Text;
-            backupLiftPulseCorrections = liftPulseCorrectionsTextBox.Text;
-            backupPropPulseCorrections = propPulseCorrectionsTextBox.Text;
-            backupServoCorrection = servoCorrectionTextBox.Text;
+            _socketBackup = socketTextBox.Text;
+            _liftSetupBackup = liftSetupTextBox.Text;
+            _propSetupBackup = propSetupTextBox.Text;
+            _servoSetupBackup = servoSetupTextBox.Text;
+            _controlIntervalMillisecondsBackup = controlIntervalMillisecondsTextBox.Text;
+            _liftPulseRatiosBackup = liftPulsesRatiosTextBox.Text;
+            _propPulseRatiosBackup = propPulsesRatiosTextBox.Text;
+            _servoPulseCorrectionBackup = servoPulseCorrectionTextBox.Text;
         }
 
         //PrimaryButtonText="Cancel"
         private void ContentDialog_PrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
-            socketTextBox.Text = backupSocket;
-            liftSetupTextBox.Text = backupLiftSetup;
-            propSetupTextBox.Text = backupPropSetup;
-            servoSetupTextBox.Text = backupServoSetup;
-            controlIntervalMillisecondsTextBox.Text = backupControlIntervalMilliseconds;
+            socketTextBox.Text = _socketBackup;
+            liftSetupTextBox.Text = _liftSetupBackup;
+            propSetupTextBox.Text = _propSetupBackup;
+            servoSetupTextBox.Text = _servoSetupBackup;
+            controlIntervalMillisecondsTextBox.Text = _controlIntervalMillisecondsBackup;
 
-            liftPulseCorrectionsTextBox.Text = backupLiftPulseCorrections;
-            propPulseCorrectionsTextBox.Text = backupPropPulseCorrections;
-            servoCorrectionTextBox.Text = backupServoCorrection;
+            liftPulsesRatiosTextBox.Text = _liftPulseRatiosBackup;
+            propPulsesRatiosTextBox.Text = _propPulseRatiosBackup;
+            servoPulseCorrectionTextBox.Text = _servoPulseCorrectionBackup;
         }
 
         //SecondaryButtonText="CONFIRM"

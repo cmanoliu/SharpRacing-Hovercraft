@@ -23,9 +23,17 @@ namespace SharpRacing.Universal.Win10
 {
     public sealed partial class MainPage : Page
     {
-        private const string DefaultHost = "127.0.0.1"; //"192.168.4.1";
+        private const string DefaultHost = "192.168.4.1"; //"127.0.0.1";
 
         private const string Port = "8077";
+
+        private const int ControlPacketLength = 4;
+
+        private const int SetupPacketLength = 70;
+
+        private byte[] _controlPacket = new byte[ControlPacketLength];
+
+        private byte[] _setupPacket = new byte[SetupPacketLength];
 
         private int _elasticDirectionTimerIntervalMilliseconds = 10;
 
@@ -38,10 +46,6 @@ namespace SharpRacing.Universal.Win10
         private Stopwatch _ackCounterStopwatch = new Stopwatch();
 
         private Int32 _lastSecAckCounter = 0;
-
-        private byte[] _controlPacket = new byte[4];
-
-        private byte[] _setupPacket = new byte[74];
 
         private SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
 
@@ -373,7 +377,14 @@ namespace SharpRacing.Universal.Win10
             if (await _setupDialog.ShowAsync() == ContentDialogResult.Secondary)
             {
                 setupAckTextBlock.Text = String.Empty;
-                await ApplySetup(_setupDialog.SocketAddress, _setupDialog.LiftSetupText, _setupDialog.PropSetupText, _setupDialog.ServoSetupText, _setupDialog.LiftPulseCorrections, _setupDialog.PropPulseCorrections, _setupDialog.ServoCorrection);
+                await ApplySetup(
+                    _setupDialog.SocketAddress, 
+                    _setupDialog.LiftSetupText, 
+                    _setupDialog.PropSetupText, 
+                    _setupDialog.ServoSetupText, 
+                    _setupDialog.LiftPulsesRatios, 
+                    _setupDialog.PropPulsesRatios, 
+                    _setupDialog.ServoPulseCorrection);
 
                 int ms;
                 if (int.TryParse(_setupDialog.ControlIntervalMilliseconds, out ms))
@@ -532,9 +543,9 @@ namespace SharpRacing.Universal.Win10
             string liftSetupText, 
             string propSetupText, 
             string servoSetupText, 
-            string liftPulseCorrectionsText, 
-            string propPulseCorrectionsText, 
-            string servoCorrectionText)
+            string liftPulsesRatiosText, 
+            string propPulsesRatiosText, 
+            string servoPulseCorrectionText)
         {
             var a = _setupDialog.SocketAddress.Trim().Split(':');
             if (a.Length == 2)
@@ -554,7 +565,7 @@ namespace SharpRacing.Universal.Win10
                 this._connection.Socket = null;
             }
 
-            if (!UpdateSetupPacket(liftSetupText, propSetupText, servoSetupText, liftPulseCorrectionsText, propPulseCorrectionsText, servoCorrectionText))
+            if (!UpdateSetupPacket(liftSetupText, propSetupText, servoSetupText, liftPulsesRatiosText, propPulsesRatiosText, servoPulseCorrectionText))
                 return;
 
             HovercraftRequestResult response = null;
@@ -754,9 +765,9 @@ namespace SharpRacing.Universal.Win10
             string liftSetupText, 
             string propSetupText, 
             string servoSetupText, 
-            string liftPulseCorrections, 
-            string propPulseCorrections, 
-            string servoCorrectionText)
+            string liftPulsesRatiosText, 
+            string propPulsesRatiosText, 
+            string servoPulseCorrectionText)
         {
             bool result = false;
             try
@@ -765,21 +776,21 @@ namespace SharpRacing.Universal.Win10
                 var propSetup = ParseLedcSetupData(propSetupText);
                 var servoSetup = ParseLedcSetupData(servoSetupText);
 
-                var lcx = liftPulseCorrections.Trim().Split(';');
+                var lcx = liftPulsesRatiosText.Trim().Split(';');
                 if (lcx.Length != 2)
-                    throw new ArgumentException(nameof(liftPulseCorrections));
+                    throw new ArgumentException(nameof(liftPulsesRatiosText));
 
-                UInt16 lift1PulseCorrection = UInt16.Parse(lcx[0]);
-                UInt16 lift2PulseCorrection = UInt16.Parse(lcx[1]);
+                Byte lift1PulseCorrection = Byte.Parse(lcx[0].Replace("%", ""));
+                Byte lift2PulseCorrection = Byte.Parse(lcx[1].Replace("%", ""));
 
-                var pcx = propPulseCorrections.Trim().Split(';');
+                var pcx = propPulsesRatiosText.Trim().Split(';');
                 if (pcx.Length != 2)
-                    throw new ArgumentException(nameof(propPulseCorrections));
+                    throw new ArgumentException(nameof(propPulsesRatiosText));
 
-                UInt16 prop1PulseCorrection = UInt16.Parse(pcx[0]);
-                UInt16 prop2PulseCorrection = UInt16.Parse(pcx[1]);
+                Byte prop1PulseCorrection = Byte.Parse(pcx[0].Replace("%", ""));
+                Byte prop2PulseCorrection = Byte.Parse(pcx[1].Replace("%", ""));
 
-                Int16 servoCorrection = Int16.Parse(servoCorrectionText);
+                Int16 servoCorrection = Int16.Parse(servoPulseCorrectionText);
 
                 int offset = 0;
                 WriteByte(2, _setupPacket, ref offset);
@@ -788,11 +799,11 @@ namespace SharpRacing.Universal.Win10
                 WriteBytes(propSetup, _setupPacket, ref offset);
                 WriteBytes(servoSetup, _setupPacket, ref offset);
 
-                WriteBytes(lift1PulseCorrection, _setupPacket, ref offset);
-                WriteBytes(lift2PulseCorrection, _setupPacket, ref offset);
+                WriteByte(lift1PulseCorrection, _setupPacket, ref offset);
+                WriteByte(lift2PulseCorrection, _setupPacket, ref offset);
 
-                WriteBytes(prop1PulseCorrection, _setupPacket, ref offset);
-                WriteBytes(prop2PulseCorrection, _setupPacket, ref offset);
+                WriteByte(prop1PulseCorrection, _setupPacket, ref offset);
+                WriteByte(prop2PulseCorrection, _setupPacket, ref offset);
 
                 WriteBytes(servoCorrection, _setupPacket, ref offset);
 

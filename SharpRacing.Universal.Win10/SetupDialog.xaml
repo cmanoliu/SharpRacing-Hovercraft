@@ -48,8 +48,8 @@
                  Text="500;16;0;100;32767;65535" TextAlignment="Right"/>
         <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal" 
                     HorizontalAlignment="Right" >
-            <TextBlock Text=" cx" VerticalAlignment="Center" />
-            <TextBox x:Name="servoCorrectionTextBox" VerticalAlignment="Center"
+            <TextBlock Text=" trim" VerticalAlignment="Center" />
+            <TextBox x:Name="servoPulseCorrectionTextBox" VerticalAlignment="Center"
                      Text="-128" Width="96" TextAlignment="Right" />
         </StackPanel>
 
@@ -60,9 +60,9 @@
                  Text="500;16;0;100;32767;65535" TextAlignment="Right"/>
         <StackPanel Grid.Row="3" Grid.Column="2" Orientation="Horizontal" 
                     HorizontalAlignment="Right" >
-            <TextBlock Text=" cx" VerticalAlignment="Center" />
-            <TextBox x:Name="liftPulseCorrectionsTextBox" VerticalAlignment="Center"
-                     Text="256;0" Width="96" TextAlignment="Right" />
+            <TextBlock Text=" p1%;p2%" VerticalAlignment="Center" />
+            <TextBox x:Name="liftPulsesRatiosTextBox" VerticalAlignment="Center"
+                     Text="100%;100%" Width="96" TextAlignment="Right" />
         </StackPanel>
 
         <TextBlock Grid.Row="4" Grid.Column="0" Text="Prop" 
@@ -72,9 +72,9 @@
                  Text="500;16;0;100;32767;65535" TextAlignment="Right"/>
         <StackPanel Grid.Row="4" Grid.Column="2" Orientation="Horizontal"
                     HorizontalAlignment="Right" >
-            <TextBlock Text=" cx" VerticalAlignment="Center" />
-            <TextBox x:Name="propPulseCorrectionsTextBox" VerticalAlignment="Center"
-                     Text="0;256" Width="96" TextAlignment="Right"/>
+            <TextBlock Text=" p1%;p2%" VerticalAlignment="Center" />
+            <TextBox x:Name="propPulsesRatiosTextBox" VerticalAlignment="Center"
+                     Text="100%;100%" Width="96" TextAlignment="Right"/>
         </StackPanel>
 
     </Grid>
