@@ -47,11 +47,14 @@ const char *password = WIFI_PASSWORD; //defined in Secrets.h
 #define DEFAULT_prop2_pulse_ratio 1.0f // 100%
 #define DEFAULT_servo_pulse_correction 0
 
-#define CONTROL_PACKET_LENGTH  4
-#define SETUP_PACKET_LENGTH   70
+#define DEFAULT_prop_boost_pulse 51199 //  56%  
 
-#define INPUT_BUFFER_LENGTH  256
-#define OUTPUT_BUFFER_LENGTH 640
+#define CONTROL_PACKET_LENGTH_V1 4
+#define CONTROL_PACKET_LENGTH_V2 6
+#define SETUP_PACKET_LENGTH   72
+
+#define INPUT_BUFFER_LENGTH   512
+#define OUTPUT_BUFFER_LENGTH  768
 
 WiFiServer server(TCP_PORT);
 
@@ -84,10 +87,12 @@ uint32_t prop_map_in_max = DEFAULT_ESC_MAP_IN_MAX;
 uint32_t prop_map_out_min = DEFAULT_ESC_MAP_OUT_MIN;
 uint32_t prop_map_out_max = DEFAULT_ESC_MAP_OUT_MAX;
 
+uint16_t prop_boost_pulse = DEFAULT_prop_boost_pulse;
+
 float_t prop1_pulse_correction = DEFAULT_prop1_pulse_ratio;
 float_t prop2_pulse_correction = DEFAULT_prop2_pulse_ratio;
 
-unsigned int cnt = 0;
+unsigned long cnt = 0;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -106,11 +111,14 @@ void setup() {
 
 // the loop function runs over and over again until power down or reset
 void loop() {
-	static unsigned int last = 0;
+	static unsigned long last = 0;
 	static unsigned int delta = TICK_TIMEOUT;
-	unsigned int now = millis();
-	unsigned int diff = now - last;
+
+	unsigned long now = millis();
+	unsigned long diff = now - last;
+
 	unsigned int tick = (diff >= delta);
+
 	if (tick) {
 		delta = TICK_TIMEOUT;
 		last = now;
@@ -189,13 +197,15 @@ void ledcSetup_LIFT(uint32_t freq, uint8_t resolution_bits, uint32_t map_in_min,
 #endif
 }
 
-void ledcSetup_PROP(uint32_t freq, uint8_t resolution_bits, uint32_t map_in_min, uint32_t map_in_max, uint32_t map_out_min, uint32_t map_out_max, float_t pulse1_correction, float_t pulse2_correction) {
+void ledcSetup_PROP(uint32_t freq, uint8_t resolution_bits, uint32_t map_in_min, uint32_t map_in_max, uint32_t map_out_min, uint32_t map_out_max, float_t pulse1_correction, float_t pulse2_correction, uint16_t boost_pulse) {
 	prop_ledc_freq = freq;
 	prop_ledc_resolution_bits = resolution_bits;
 	prop_map_in_min = map_in_min;
 	prop_map_in_max = map_in_max;
 	prop_map_out_min = map_out_min;
 	prop_map_out_max = map_out_max;
+
+	prop_boost_pulse = boost_pulse;
 
 	prop1_pulse_correction = pulse1_correction;
 	prop2_pulse_correction = pulse2_correction;
@@ -207,6 +217,7 @@ void ledcSetup_PROP(uint32_t freq, uint8_t resolution_bits, uint32_t map_in_min,
 	Serial.print("ledcSetup( PROP1_CHANNEL #"); Serial.print(PROP1_CHANNEL);  Serial.print(" and PROP2_CHANNEL #"); Serial.print(PROP2_CHANNEL); Serial.print(", ");
 	Serial.print(prop_ledc_freq); Serial.print(", "); Serial.print(prop_ledc_resolution_bits);
 	Serial.print("); pulse ratios: "); Serial.print(prop1_pulse_correction); Serial.print(", "); Serial.print(prop2_pulse_correction);
+	Serial.print("; boost_pulse: "); Serial.print(boost_pulse);
 	Serial.println(";");
 #endif
 }
@@ -239,7 +250,8 @@ void setupHovercraft() {
 		DEFAULT_ESC_MAP_OUT_MIN,
 		DEFAULT_ESC_MAP_OUT_MAX,
 		DEFAULT_prop1_pulse_ratio,
-		DEFAULT_prop2_pulse_ratio);
+		DEFAULT_prop2_pulse_ratio,
+		DEFAULT_prop_boost_pulse);
 
 	// 13 - This is GPIO #13 and also an analog input A12.
 	// It's also connected to the red LED next to the USB port
@@ -265,7 +277,7 @@ void setupHovercraft() {
 }
 
 void write_SERVO(byte duty) {
-	int pulse = map(
+	uint32_t pulse = map(
 		duty,
 		servo_map_in_min,
 		servo_map_in_max,
@@ -281,7 +293,7 @@ void write_SERVO(byte duty) {
 	Serial.print(servo_map_out_max); Serial.print("); ");
 #endif
 
-	int finalPulse = pulse + servo_pulse_correction;
+	uint32_t finalPulse = pulse + servo_pulse_correction;
 
 	ledcWrite(SERVO_CHANNEL, constrain(finalPulse, servo_map_out_min, servo_map_out_max));
 
@@ -291,9 +303,12 @@ void write_SERVO(byte duty) {
 #endif  
 }
 
-void write_LIFT(byte duty) {
-	int pulse = map(
-		duty,
+byte servoDuty_middle = 50;
+
+void write_LIFT(byte liftDuty, byte turnByLiftEnabled, byte servoDuty) {
+
+	uint32_t pulse = map(
+		liftDuty,
 		lift_map_in_min,
 		lift_map_in_max,
 		lift_map_out_min,
@@ -301,15 +316,55 @@ void write_LIFT(byte duty) {
 
 #if defined(DEBUG)
 	Serial.print("map(");
-	Serial.print(duty); Serial.print(", ");
+	Serial.print(liftDuty); Serial.print(", ");
 	Serial.print(lift_map_in_min); Serial.print(", ");
 	Serial.print(lift_map_in_max); Serial.print(", ");
 	Serial.print(lift_map_out_min); Serial.print(", ");
 	Serial.print(lift_map_out_max); Serial.print("); ");
 #endif  
 
-	int pulse1 = pulse * lift1_pulse_correction;
-	int pulse2 = pulse * lift2_pulse_correction;
+	uint32_t pulse1 = pulse * lift1_pulse_correction;
+	uint32_t pulse2 = pulse * lift2_pulse_correction;
+
+	if (turnByLiftEnabled)
+	{
+
+#if defined(DEBUG)  
+		Serial.print("turnByLiftEnabled; ");
+#endif    
+
+		//LIFT1_CHANNEL turns LEFT
+		//LIFT2_CHANNEL turns RIGHT
+
+		//Full LEFT when servoDuty is at 100 -> LEFT+50% and RIGHT-50% 
+		if (servoDuty > servoDuty_middle)
+		{
+			uint32_t delta = servoDuty - servoDuty_middle;
+			pulse1 = pulse1 + (pulse1 - lift_map_out_min) * delta / 100;
+			pulse2 = pulse2 - (pulse2 - lift_map_out_min) * delta / 100;
+
+			if (pulse1 > lift_map_out_max)
+			{
+				uint32_t exceeding = pulse1 - lift_map_out_max;
+				pulse1 = pulse1 - exceeding;
+				pulse2 = pulse2 - exceeding;
+			}
+		}
+		//Full RIGHT when servoDuty is at 0 -> LEFT-50% and RIGHT+50%
+		else if (servoDuty < servoDuty_middle)
+		{
+			uint32_t delta = servoDuty_middle - servoDuty;
+			pulse1 = pulse1 - (pulse1 - lift_map_out_min) * delta / 100;
+			pulse2 = pulse2 + (pulse2 - lift_map_out_min) * delta / 100;
+
+			if (pulse2 > lift_map_out_max)
+			{
+				uint32_t exceeding = pulse2 - lift_map_out_max;
+				pulse2 = pulse2 - exceeding;
+				pulse1 = pulse1 - exceeding;
+			}
+		}
+	}
 
 	ledcWrite(LIFT1_CHANNEL, constrain(pulse1, lift_map_out_min, lift_map_out_max));
 	ledcWrite(LIFT2_CHANNEL, constrain(pulse2, lift_map_out_min, lift_map_out_max));
@@ -320,25 +375,37 @@ void write_LIFT(byte duty) {
 #endif    
 }
 
-void write_PROP(byte duty) {
-	int pulse = map(
-		duty,
-		prop_map_in_min,
-		prop_map_in_max,
-		prop_map_out_min,
-		prop_map_out_max);
+void write_PROP(byte duty, byte boostEnabled) {
+
+	uint32_t pulse1;
+	uint32_t pulse2;
+
+	if (boostEnabled)
+	{
+		pulse1 = prop_boost_pulse;
+		pulse2 = prop_boost_pulse;
+	}
+	else
+	{
+		uint32_t pulse = map(
+			duty,
+			prop_map_in_min,
+			prop_map_in_max,
+			prop_map_out_min,
+			prop_map_out_max);
 
 #if defined(DEBUG)  
-	Serial.print("map(");
-	Serial.print(duty); Serial.print(", ");
-	Serial.print(prop_map_in_min); Serial.print(", ");
-	Serial.print(prop_map_in_max); Serial.print(", ");
-	Serial.print(prop_map_out_min); Serial.print(", ");
-	Serial.print(prop_map_out_max); Serial.print("); ");
+		Serial.print("map(");
+		Serial.print(duty); Serial.print(", ");
+		Serial.print(prop_map_in_min); Serial.print(", ");
+		Serial.print(prop_map_in_max); Serial.print(", ");
+		Serial.print(prop_map_out_min); Serial.print(", ");
+		Serial.print(prop_map_out_max); Serial.print("); ");
 #endif 
 
-	int pulse1 = pulse * prop1_pulse_correction;
-	int pulse2 = pulse * prop2_pulse_correction;
+		pulse1 = pulse * prop1_pulse_correction;
+		pulse2 = pulse * prop2_pulse_correction;
+	}
 
 	ledcWrite(PROP1_CHANNEL, constrain(pulse1, prop_map_out_min, prop_map_out_max));
 	ledcWrite(PROP2_CHANNEL, constrain(pulse2, prop_map_out_min, prop_map_out_max));
@@ -349,7 +416,7 @@ void write_PROP(byte duty) {
 #endif   
 }
 
-void updateHovercraft(byte enabled, byte liftDuty, byte propDuty, byte servoDuty)
+void updateHovercraft(byte enabled, byte liftDuty, byte propDuty, byte servoDuty, byte boostEnabled, byte turnByLiftEnabled)
 {
 	if (!enabled)
 	{
@@ -357,9 +424,17 @@ void updateHovercraft(byte enabled, byte liftDuty, byte propDuty, byte servoDuty
 		return;
 	}
 
-	write_SERVO(servoDuty);
-	write_LIFT(liftDuty);
-	write_PROP(propDuty);
+	if (turnByLiftEnabled)
+	{
+		ledcWrite(SERVO_CHANNEL, servo_map_out_min + (servo_map_out_max - servo_map_out_min) / 2); //TODO CONSIDER >> 1
+	}
+	else
+	{
+		write_SERVO(servoDuty);
+	}
+
+	write_LIFT(liftDuty, turnByLiftEnabled, servoDuty);
+	write_PROP(propDuty, boostEnabled);
 }
 
 void stopHovercraft()
@@ -370,7 +445,7 @@ void stopHovercraft()
 	ledcWrite(LIFT1_CHANNEL, lift_map_out_min);
 	ledcWrite(LIFT2_CHANNEL, lift_map_out_min);
 
-	ledcWrite(SERVO_CHANNEL, servo_map_out_min + (servo_map_out_max - servo_map_out_min) / 2);
+	ledcWrite(SERVO_CHANNEL, servo_map_out_min + (servo_map_out_max - servo_map_out_min) / 2); //TODO CONSIDER >> 1
 }
 
 uint32_t readInt32(uint8_t* data, uint32_t offset)
@@ -435,7 +510,8 @@ void serverPoll() {
 
 				switch (tmp_len) {
 
-				case CONTROL_PACKET_LENGTH:
+				case CONTROL_PACKET_LENGTH_V1:
+				case CONTROL_PACKET_LENGTH_V2:
 				{
 					byte tmp_enabled = inputBuffer[0];
 					if (tmp_enabled == 0 || tmp_enabled == 1)
@@ -444,17 +520,27 @@ void serverPoll() {
 						byte tmp_propulsion = inputBuffer[2];
 						byte tmp_servo = inputBuffer[3];
 
-						updateHovercraft(tmp_enabled, tmp_lift, tmp_propulsion, tmp_servo);
-						sprintf(outputBuffer, "ACK#%u %u %u %u %u\r\n", cnt++, tmp_enabled, tmp_lift, tmp_propulsion, tmp_servo);
+						//L'applie iOS de Marc n'envoie pas les 2 nouveaux bytes du mode boost et turnByLift
+						byte tmp_boost_enabled = 0;
+						byte tmp_turnByLiftEnabled = 0;
+
+						if (tmp_len == CONTROL_PACKET_LENGTH_V2)
+						{
+							tmp_boost_enabled = inputBuffer[4];
+							tmp_turnByLiftEnabled = inputBuffer[5];
+						}
+
+						updateHovercraft(tmp_enabled, tmp_lift, tmp_propulsion, tmp_servo, tmp_boost_enabled, tmp_turnByLiftEnabled);
+						sprintf(outputBuffer, "ACK#%u %u %u %u %u %u %u\r\n", cnt++, tmp_enabled, tmp_lift, tmp_propulsion, tmp_servo, tmp_boost_enabled, tmp_turnByLiftEnabled);
 
 #if defined(DEBUG)          
-						Serial.println((char *)buf);
+						Serial.println((char *)outputBuffer);
 #endif 
 					}
 					else
 					{
 						stopHovercraft();
-						sprintf(outputBuffer, "Invalid %u bytes (control) packet. The first byte is expected to be 00 (disabled) or 01 (enabled). STOP.\r\n", CONTROL_PACKET_LENGTH);
+						sprintf(outputBuffer, "Invalid %u bytes (control) packet. The first byte is expected to be 00 (disabled) or 01 (enabled). STOP.\r\n", CONTROL_PACKET_LENGTH_V2);
 						Serial.println((char *)outputBuffer);
 					}
 					break;
@@ -464,6 +550,7 @@ void serverPoll() {
 				// 64 bytes =  1 + 3 x 21 bytes (4, 1, 4, 4, 4, 4 = uint32_t freq, uint8_t resolution_bits, uint32_t map_in_min, uint32_t map_in_max, uint32_t map_out_min, uint32_t map_out_max )
 				// +4 bytes = lift1_pulse_ratio, lift2_pulse_ratio, prop1_pulse_ratio, prop2_pulse_ratio
 				// +2 bytes (1 word = servo_pulse_correction) 
+				// +2 bytes (1 word = prop_boost_pulse) 
 				case SETUP_PACKET_LENGTH:
 				{
 					byte first = inputBuffer[0];
@@ -500,6 +587,9 @@ void serverPoll() {
 						float_t tmp_prop2_pulse_correction = inputBuffer[3 + i] / 100.0f;   // 3
 						int16_t tmp_servo_pulse_correction = readInt16(inputBuffer, 4 + i); //  4,  5
 
+						i = i + 6;
+						uint16_t tmp_prop_boost_pulse = readUInt16(inputBuffer, 0 + i); //  0,  1
+
 						ledcSetup_LIFT(
 							tmp_lift_freq,
 							tmp_lift_resolution,
@@ -518,7 +608,8 @@ void serverPoll() {
 							tmp_propulsion_map_out_min,
 							tmp_propulsion_map_out_max,
 							tmp_prop1_pulse_correction,
-							tmp_prop2_pulse_correction);
+							tmp_prop2_pulse_correction,
+							tmp_prop_boost_pulse);
 
 						ledcSetup_SERVO(
 							tmp_servo_freq,
@@ -529,14 +620,14 @@ void serverPoll() {
 							tmp_servo_map_out_max,
 							tmp_servo_pulse_correction);
 
-						sprintf(outputBuffer, "ACK#%u LIFT %u %u %u %u %u %u %.2f:%.2f | PROP %u %u %u %u %u %u %.2f:%.2f | SERVO %u %u %u %u %u %u trim%d\r\n", cnt++,
+						sprintf(outputBuffer, "ACK#%u LIFT %u %u %u %u %u %u %.2f:%.2f | PROP %u %u %u %u %u %u %.2f:%.2f %u | SERVO %u %u %u %u %u %u trim%d\r\n", cnt++,
 							tmp_lift_freq, tmp_lift_resolution, tmp_lift_map_in_min, tmp_lift_map_in_max, tmp_lift_map_out_min, tmp_lift_map_out_max, tmp_lift1_pulse_correction, tmp_lift2_pulse_correction,
-							tmp_propulsion_freq, tmp_propulsion_resolution, tmp_propulsion_map_in_min, tmp_propulsion_map_in_max, tmp_propulsion_map_out_min, tmp_propulsion_map_out_max, tmp_prop1_pulse_correction, tmp_prop2_pulse_correction,
+							tmp_propulsion_freq, tmp_propulsion_resolution, tmp_propulsion_map_in_min, tmp_propulsion_map_in_max, tmp_propulsion_map_out_min, tmp_propulsion_map_out_max, tmp_prop1_pulse_correction, tmp_prop2_pulse_correction, tmp_prop_boost_pulse,
 							tmp_servo_freq, tmp_servo_resolution, tmp_servo_map_in_min, tmp_servo_map_in_max, tmp_servo_map_out_min, tmp_servo_map_out_max, tmp_servo_pulse_correction
 						);
 
 #if defined(DEBUG)          
-						Serial.println((char *)buf);
+						Serial.println((char *)outputBuffer);
 #endif 
 					}
 					else
@@ -552,7 +643,7 @@ void serverPoll() {
 				default:
 				{
 					stopHovercraft();
-					sprintf(outputBuffer, "Invalid packet. Expected a %u bytes (control) packet or an %u bytes (setup) packet. Received packet is %u bytes length. STOP.\r\n", CONTROL_PACKET_LENGTH, SETUP_PACKET_LENGTH, tmp_len);
+					sprintf(outputBuffer, "Invalid packet. Expected a %u bytes (control) packet or an %u bytes (setup) packet. Received packet is %u bytes length. STOP.\r\n", CONTROL_PACKET_LENGTH_V2, SETUP_PACKET_LENGTH, tmp_len);
 					Serial.println((char *)outputBuffer);
 					break;
 				}

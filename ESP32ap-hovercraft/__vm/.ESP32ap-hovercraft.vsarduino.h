@@ -14,7 +14,6 @@
 #define _VSARDUINO_H_
 #define __ESP32_ESp32__
 #define __ESP32_ESP32__
-#define _VMDEBUG 1
 #define ESP_PLATFORM
 #define HAVE_CONFIG_H
 #define F_CPU 240000000L
@@ -90,7 +89,7 @@ typedef long __PTRDIFF_TYPE__;
 
 
 
-#include <Arduino.h>
+#include <arduino.h>
 #include <pins_arduino.h> 
 
 //#include "..\generic\Common.h"

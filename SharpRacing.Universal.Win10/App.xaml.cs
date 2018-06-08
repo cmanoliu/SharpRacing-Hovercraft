@@ -76,6 +76,8 @@ namespace SharpRacing.Universal.Win10
                     rootFrame.Navigate(typeof(MainPage), e.Arguments);
                 }
                 // Ensure the current window is active
+                ApplicationView.PreferredLaunchWindowingMode = ApplicationViewWindowingMode.FullScreen;
+
                 //ApplicationView.PreferredLaunchViewSize = new Size(1920, 1080);
                 //ApplicationView.PreferredLaunchWindowingMode = ApplicationViewWindowingMode.PreferredLaunchViewSize;
                 Window.Current.Activate();

@@ -12,7 +12,7 @@
         <local:BoolToOnOffConverter x:Key="boolToOnOffConverter" />
     </Page.Resources>
 
-    <Grid Margin="13,13,13,13" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid Margin="0,0,0,0" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
        
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -27,7 +27,7 @@
             </Grid.ColumnDefinitions>
             <Button x:Name="wifiNetworkButton" Grid.Row="0" Grid.Column="0"
                     Margin="0,0,0,0"
-                    Width="200"
+                    Width="240"
                     Background="Transparent"
                     HorizontalAlignment="Left" VerticalAlignment="Center" 
                     HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
@@ -53,12 +53,31 @@
 
         <Grid x:Name="ContentPanel" Grid.Row="1" >
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="80"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Grid x:Name="directionAndButtonsGrid" Grid.Column="2" Margin="13,0,0,0">
+            <Grid Grid.Column="0">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <ToggleButton x:Name="boostButton" Grid.Row="0"
+                                  Margin="0,13,0,0" 
+                                  IsChecked="false" 
+                                  Content="boost" 
+                                  VerticalAlignment="Center" HorizontalAlignment="Center" 
+                                  Height="58" Width="58" 
+                                  Checked="boostButton_CheckedOrUnchecked" 
+                                  Unchecked="boostButton_CheckedOrUnchecked"/>
+
+            </Grid>
+
+            <Grid x:Name="directionAndButtonsGrid" Grid.Column="3" Margin="13,0,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -66,46 +85,53 @@
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0">
+                    
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Orientation="Vertical" Grid.Column="0">
-                        <StackPanel Orientation="Horizontal">
-                            <CheckBox x:Name="adaptiveLiftCheckBox" Content="prop. -\- lift"
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+                            <CheckBox x:Name="adaptiveLiftCheckBox" Content="prop-/-lift"
                                       Checked="adaptiveLiftCheckBox_CheckedOrUnchecked" 
                                       Unchecked="adaptiveLiftCheckBox_CheckedOrUnchecked" />
-                            <TextBox x:Name="adaptiveLiftSettings" Text="36;0.9" 
+                            <TextBox x:Name="adaptiveLiftSettings" Text="37;1" 
                                  TextAlignment="Right" HorizontalAlignment="Left" 
                                  TextChanged="linkPropLiftSettings_TextChanged"/>
-
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <CheckBox x:Name="adaptiveDirectionBoundsCheckBox" Content="adaptive dir."
+
+                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                            <CheckBox x:Name="adaptiveDirectionBoundsCheckBox" Content="prop-/-dir"
                                   Checked="adaptiveDirectionBoundsCheckBox_CheckedOrUnchecked" Unchecked="adaptiveDirectionBoundsCheckBox_CheckedOrUnchecked"/>
-                            <TextBox x:Name="adaptiveDirectionSettings" Text="60;0.8" 
+                            <TextBox x:Name="adaptiveDirectionSettings" Text="30;1" 
                                  TextAlignment="Right" HorizontalAlignment="Left" 
                                  TextChanged="adaptiveDirectionSettings_TextChanged"/>
                         </StackPanel>
-                    </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Grid.Column="1">
-                        <Button Margin="0,0,13,0" 
-                            Content="set" 
-                            Click="setupButton_Click" 
-                            VerticalAlignment="Top" HorizontalAlignment="Right"
-                            Height="48" Width="48"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                            <CheckBox x:Name="boostEnabledCheckBox" Content="boost"
+                                  Checked="boostEnabledCheckBox_CheckedOrUnchecked" Unchecked="boostEnabledCheckBox_CheckedOrUnchecked"/>
+                        </StackPanel>
 
-                        <ToggleButton x:Name="onOffToggle" 
-                                  Margin="0,0,13,0" 
-                                  IsChecked="true" 
-                                  Content="{Binding ElementName=onOffToggle,Path=IsChecked, Converter={StaticResource boolToOnOffConverter}}" 
-                                  VerticalAlignment="Top" HorizontalAlignment="Right" 
-                                  Height="48" Width="48" 
-                                  Checked="onOffToggle_CheckedOrUnchecked" 
-                                  Unchecked="onOffToggle_CheckedOrUnchecked"/>
-                    </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                            <CheckBox x:Name="propWhenTurningCheckBox" Content="dir-/-prop"
+                                  Checked="propWhenTurningCheckBox_CheckedOrUnchecked" Unchecked="propWhenTurningCheckBox_CheckedOrUnchecked"/>
+                            <TextBox x:Name="propWhenTurningSettings" Text="74" 
+                                 TextAlignment="Right" HorizontalAlignment="Left" 
+                                 TextChanged="propWhenTurningSettings_TextChanged"/>
+                        </StackPanel>
+
+                    </Grid>
                 </Grid>
 
                 <Grid Grid.Row="1" >
@@ -114,12 +140,33 @@
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="64"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" 
+                                VerticalAlignment="Bottom" HorizontalAlignment="Right">
+
+                        <Button Margin="0,0,13,0" 
+                            Content="set" 
+                            Click="setupButton_Click" 
+                            VerticalAlignment="Top" HorizontalAlignment="Center"
+                            Height="58" Width="58"/>
+
+                        <!--Content="{Binding ElementName=onOffToggle,Path=IsChecked, Converter={StaticResource boolToOnOffConverter}}"-->
+                        <ToggleButton x:Name="onOffToggle" 
+                                  Margin="0,0,13,0" 
+                                  IsChecked="false"
+                                  Content="I / O"
+                                  VerticalAlignment="Top" HorizontalAlignment="Center" 
+                                  Height="58" Width="58" 
+                                  Checked="onOffToggle_CheckedOrUnchecked" 
+                                  Unchecked="onOffToggle_CheckedOrUnchecked"/>
+
+                    </StackPanel>
+
                     <TextBlock x:Name="setupAckTextBlock" 
-                               Grid.Row="0" 
-                               Grid.RowSpan="1" 
+                               Grid.Row="1"  
                                HorizontalAlignment="Stretch" 
                                VerticalAlignment="Stretch" 
                                TextWrapping="Wrap" 
@@ -152,14 +199,33 @@
                         <!--Height="64" Background="{ThemeResource ThumbPressedBorderThemeBrush}" 
                             Tapped="outsideDirection_Tapped"-->
                         <Grid Grid.Row="0" Margin="0,0,0,7" >
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Grid Margin="13,0,0,0" Height="58" Width="58"/>
+                            
                             <!--Text="{Binding ElementName=direction,Path=Value, Converter={StaticResource doubleToIntConverter}}"-->
-                            <TextBox x:Name="directionText" 
-                                     VerticalAlignment="Center" 
+                            <TextBox x:Name="directionText" Grid.Column="1"
+                                     VerticalAlignment="Bottom" 
                                      HorizontalAlignment="Center" 
                                      TextAlignment="Right"
                                      IsReadOnly="True"
                                      IsHitTestVisible="false"
                                      IsEnabled="False"/>
+
+                            <!--Content="&lt;v&gt;"-->
+                            <ToggleButton x:Name="directionByLiftButton" Grid.Column="2"
+                                  Margin="0,0,13,0" 
+                                  IsChecked="false" 
+                                  Content="-lift-" 
+                                  VerticalAlignment="Top" HorizontalAlignment="Center" 
+                                  Height="58" Width="58" 
+                                  Checked="directionByLiftButton_CheckedOrUnchecked" 
+                                  Unchecked="directionByLiftButton_CheckedOrUnchecked"/>
                         </Grid>
 
                         <Slider Name="direction" Grid.Row="1"  Orientation="Horizontal"  
@@ -187,7 +253,7 @@
 
             </Grid>
 
-            <Grid x:Name="propulsionGrid" Grid.Column="0" >
+            <Grid x:Name="propulsionGrid" Grid.Column="1" >
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -210,7 +276,7 @@
                            Text="propulsion" />
             </Grid>
             
-            <Grid x:Name="liftGrid" Grid.Column="1" >
+            <Grid x:Name="liftGrid" Grid.Column="2" >
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -231,7 +297,7 @@
                         TickPlacement="Outside"                                
                         TickFrequency="10"/>
                 <TextBlock Grid.Row="2" HorizontalAlignment="Center"
-                           Text="lift" />
+                        Text="lift" />
             </Grid>
         </Grid>
     </Grid>

@@ -27,13 +27,17 @@ namespace SharpRacing.Universal.Win10
 
         private const string Port = "8077";
 
-        private const int ControlPacketLength = 4;
+        private const int ControlPacketLength = 6;
 
-        private const int SetupPacketLength = 70;
+        private const int SetupPacketLength = 72;
 
         private byte[] _controlPacket = new byte[ControlPacketLength];
 
         private byte[] _setupPacket = new byte[SetupPacketLength];
+
+        private StringBuilder _controlAckText = new StringBuilder(512);
+
+        private StringBuilder _setupAckText = new StringBuilder(1024);
 
         private int _elasticDirectionTimerIntervalMilliseconds = 10;
 
@@ -93,6 +97,16 @@ namespace SharpRacing.Universal.Win10
 
         private bool _isAdaptiveDirectionBoundsChecked;
 
+        private bool _isBoostAllowed;
+
+        private bool _isBoostPressed;
+
+        private bool _propWhenTurningChecked;
+
+        private byte? _propWhenTurningValue;
+
+        private bool _isDirectionByLiftPressed;
+
         private readonly bool _insideConstructorCode;
 
         private VisualStateGroup _directionCommonStates;
@@ -136,16 +150,31 @@ namespace SharpRacing.Universal.Win10
 
         private async void OnPageLoaded(object sender, RoutedEventArgs e)
         {
+            // If we have a phone contract, hide the status bar
+            if (ApiInformation.IsApiContractPresent("Windows.Phone.PhoneContract", 1, 0))
+            {
+                var statusBar = Windows.UI.ViewManagement.StatusBar.GetForCurrentView();
+                await statusBar.HideAsync();
+
+                //var sysNavManager = Windows.UI.Core.SystemNavigationManager.GetForCurrentView();
+                //sysNavManager.AppViewBackButtonVisibility = Windows.UI.Core.AppViewBackButtonVisibility.Collapsed;
+            }
+
+            _middleDirectionValue = (direction.Maximum - direction.Minimum) / 2;
+
             adaptiveLiftCheckBox.IsChecked = true;
-            adaptiveDirectionBoundsCheckBox.IsChecked = true;
+            adaptiveDirectionBoundsCheckBox.IsChecked = false;
+            boostEnabledCheckBox.IsChecked = true;
+            propWhenTurningCheckBox.IsChecked = true;
+            directionByLiftButton.IsChecked = false;
 
             ReadAdaptiveDirectionSettings();
             ReadAdaptiveLiftSettings();
+            ReadBoostSettings();
+            ReadPropWhenTurningSettings();
 
             _ackCounterStopwatch.Start();
             _controlTimer = new Timer(new TimerCallback(controlTimer_Tick), null, _controlIntervalMilliseconds, Timeout.Infinite);
-
-            _middleDirectionValue = (direction.Maximum - direction.Minimum) / 2;
 
             _elasticDirectionTimer = new DispatcherTimer();
             _elasticDirectionTimer.Interval = TimeSpan.FromMilliseconds(_elasticDirectionTimerIntervalMilliseconds);
@@ -163,7 +192,6 @@ namespace SharpRacing.Universal.Win10
                 }
             }
 
-            await FetchWiFiAdapter();
             await RefreshWiFiNetworkName();
 
             NetworkInformation.NetworkStatusChanged += NetworkInformation_NetworkStatusChanged;
@@ -179,20 +207,33 @@ namespace SharpRacing.Universal.Win10
             await RefreshWiFiNetworkName();
         }
 
-        private async Task FetchWiFiAdapter()
+        private static async Task<WiFiAdapter> FetchWiFiAdapter()
         {
-            _wifiAdapter = null;
+            WiFiAdapter wifiAdapter = null;
 
             var result = await DeviceInformation.FindAllAsync(WiFiAdapter.GetDeviceSelector());
             if (result.Count >= 1)
             {
-                _wifiAdapter = await WiFiAdapter.FromIdAsync(result[0].Id);
+                try
+                {
+                    wifiAdapter = await WiFiAdapter.FromIdAsync(result[0].Id);
+                }
+                catch
+                {
+                }
             }
+
+            return wifiAdapter;
         }
 
         private async Task RefreshWiFiNetworkName()
         {
             string wiFiName = "No WiFi !";
+
+            if (_wifiAdapter == null)
+            {
+                _wifiAdapter = await FetchWiFiAdapter();
+            }
 
             if (_wifiAdapter != null)
             {
@@ -254,18 +295,23 @@ namespace SharpRacing.Universal.Win10
             {
                 _isAdaptiveDirectionBoundsChecked = true;
 
-                double newDirectionMin = 0;
-                double newDirectionMax = 100;
-                direction.Minimum = newDirectionMin;
-                direction.Maximum = newDirectionMax;
-
-                directionMinText.Text = newDirectionMin.ToString();
-                directionMaxText.Text = newDirectionMax.ToString();
+                if (propWhenTurningCheckBox.IsChecked.HasValue && propWhenTurningCheckBox.IsChecked.Value)
+                {
+                    propWhenTurningCheckBox.IsChecked = false;
+                }
             }
             else
             {
                 _isAdaptiveDirectionBoundsChecked = false;
             }
+
+            double newDirectionMin = 0;
+            double newDirectionMax = 100;
+            direction.Minimum = newDirectionMin;
+            direction.Maximum = newDirectionMax;
+
+            directionMinText.Text = newDirectionMin.ToString();
+            directionMaxText.Text = newDirectionMax.ToString();
         }
 
         private void adaptiveDirectionSettings_TextChanged(object sender, TextChangedEventArgs e)
@@ -276,6 +322,72 @@ namespace SharpRacing.Universal.Win10
         private void linkPropLiftSettings_TextChanged(object sender, TextChangedEventArgs e)
         {
             ReadAdaptiveLiftSettings();
+        }
+
+        private void boostEnabledCheckBox_CheckedOrUnchecked(object sender, RoutedEventArgs e)
+        {
+            _isBoostAllowed = boostEnabledCheckBox.IsChecked.HasValue && boostEnabledCheckBox.IsChecked.Value;
+            boostButton.Visibility = _isBoostAllowed ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!_isBoostAllowed && boostButton.IsChecked.HasValue && boostButton.IsChecked.Value)
+            {
+                boostButton.IsChecked = false;
+            }
+        }
+
+        private void ReadBoostSettings()
+        {
+            _isBoostAllowed = boostEnabledCheckBox.IsChecked.HasValue && boostEnabledCheckBox.IsChecked.Value;
+        }
+
+        private void boostButton_CheckedOrUnchecked(object sender, RoutedEventArgs e)
+        {
+            _isBoostPressed = boostButton.IsChecked.HasValue && boostButton.IsChecked.Value;
+
+            if (_isAdaptiveLiftChecked && _maxAdaptiveLift.HasValue)
+            {
+                lift.Value = _isBoostPressed ? _maxAdaptiveLift.Value : 0;
+                if (!_isBoostPressed)
+                {
+                    propulsion.Value = 0;
+                }
+            }
+        }
+
+        private void propWhenTurningCheckBox_CheckedOrUnchecked(object sender, RoutedEventArgs e)
+        {
+            bool? isChecked = propWhenTurningCheckBox.IsChecked;
+            if (isChecked.HasValue && isChecked.Value)
+            {
+                _propWhenTurningChecked = true;
+
+                if (adaptiveDirectionBoundsCheckBox.IsChecked.HasValue && adaptiveDirectionBoundsCheckBox.IsChecked.Value)
+                {
+                    adaptiveDirectionBoundsCheckBox.IsChecked = false;
+                }
+            }
+            else
+            {
+                _propWhenTurningChecked = false;
+            }
+        }
+
+        private void directionByLiftButton_CheckedOrUnchecked(object sender, RoutedEventArgs e)
+        {
+            bool? isChecked = directionByLiftButton.IsChecked;
+            if (isChecked.HasValue && isChecked.Value)
+            {
+                _isDirectionByLiftPressed = true;
+            }
+            else
+            {
+                _isDirectionByLiftPressed = false;
+            }
+        }
+
+        private void propWhenTurningSettings_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ReadPropWhenTurningSettings();
         }
 
         private void ReadAdaptiveLiftSettings()
@@ -327,6 +439,20 @@ namespace SharpRacing.Universal.Win10
             }
         }
 
+        private void ReadPropWhenTurningSettings()
+        {
+            byte propWhenTurningValue;
+
+            if (byte.TryParse(propWhenTurningSettings.Text, out propWhenTurningValue))
+            {
+                _propWhenTurningValue = propWhenTurningValue;
+            }
+            else
+            {
+                _propWhenTurningValue = null;
+            }
+        }
+
         private void propulsion_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
             _propulsionValue = (byte)e.NewValue;
@@ -350,6 +476,11 @@ namespace SharpRacing.Universal.Win10
                 directionMinText.Text = newMin.ToString();
                 directionMaxText.Text = newMax.ToString();
             }
+
+            if (_isBoostPressed)
+            {
+                boostButton.IsChecked = false;
+            }
         }
 
         private void lift_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
@@ -362,6 +493,17 @@ namespace SharpRacing.Universal.Win10
         {
             _directionValue = (byte)e.NewValue;
             directionText.Text = _directionValue.ToString();
+
+            if (_directionValue != _middleDirectionValue && _propWhenTurningChecked && 
+                _propWhenTurningValue.HasValue && _propWhenTurningValue.Value < propulsion.Value ) 
+            {
+                propulsion.Value = _propWhenTurningValue.Value;
+            }
+
+            if (_isBoostPressed)
+            {
+                boostButton.IsChecked = false;
+            }
         }
 
         private async void wifiNetworkButton_Click(object sender, RoutedEventArgs e)
@@ -384,7 +526,8 @@ namespace SharpRacing.Universal.Win10
                     _setupDialog.ServoSetupText, 
                     _setupDialog.LiftPulsesRatios, 
                     _setupDialog.PropPulsesRatios, 
-                    _setupDialog.ServoPulseCorrection);
+                    _setupDialog.ServoPulseCorrection,
+                    _setupDialog.BoostSetup);
 
                 int ms;
                 if (int.TryParse(_setupDialog.ControlIntervalMilliseconds, out ms))
@@ -401,11 +544,19 @@ namespace SharpRacing.Universal.Win10
             //NOTE pour eviter les accidents on remet les moteurs a zero a chaque fois qu'on demarre.
             if (!_insideConstructorCode && isChecked.HasValue && isChecked.Value)
             {
-                _propulsionValue = 0;
-                _liftValue = 0;
+                boostButton.IsChecked = false;
+                directionByLiftButton.IsChecked = false;
 
                 propulsion.Value = 0;
                 lift.Value = 0;
+                direction.Value = 50;
+
+                _isBoostPressed = false;
+                _isDirectionByLiftPressed = false;
+
+                _propulsionValue = 0;
+                _liftValue = 0;
+                _directionValue = 50;
             }
 
             _enabledValue = isChecked.HasValue && isChecked.Value ? (byte)1 : (byte)0;
@@ -433,8 +584,8 @@ namespace SharpRacing.Universal.Win10
 
                 string perfText = null;
                 SolidColorBrush perfTextForeground = null;
-                string controlAckText = null;
                 string exceptionText = null;
+                _controlAckText.Clear();
 
                 try
                 {
@@ -442,6 +593,9 @@ namespace SharpRacing.Universal.Win10
                     _controlPacket[1] = _liftValue;
                     _controlPacket[2] = _propulsionValue;
                     _controlPacket[3] = _directionValue;
+
+                    _controlPacket[4] = _isBoostPressed ? (byte)1 : (byte)0;
+                    _controlPacket[5] = _isDirectionByLiftPressed ? (byte)1 : (byte)0;
 
                     response = _controlRecycledResult;
                     _controlRecycledResult.Recycle();
@@ -472,8 +626,6 @@ namespace SharpRacing.Universal.Win10
                             }
                             _lastBrushWasGreen = shouldBeGreen;
 
-                            controlAckText = response.AckResponse ?? String.Empty;
-
                             Interlocked.Exchange(ref _lastSecAckCounter, 0);
                             _ackCounterStopwatch.Restart();
 
@@ -484,11 +636,17 @@ namespace SharpRacing.Universal.Win10
 
                     if (ReferenceEquals(exceptionMessage, null) && !ReferenceEquals(response, null) && ReferenceEquals(response.Exception, null))
                     {
-                        controlAckText = response.AckResponse ?? "(null)";
+                        if (response.AckResponseLength > 0)
+                        {
+                            _controlAckText.Append(response.AckResponseBuffer, 0, response.AckResponseLength);
+                        }
                     }
                     else
                     {
-                        controlAckText = !ReferenceEquals(response, null) ? response.AckResponse ?? "(null)" : "";
+                        if (!ReferenceEquals(response, null) && response.AckResponseLength > 0)
+                        {
+                            _controlAckText.Append(response.AckResponseBuffer, 0, response.AckResponseLength);
+                        }
 
                         _sbControl.Clear();
                         _sbControl.Append(exceptionMessage ?? String.Empty);
@@ -519,7 +677,7 @@ namespace SharpRacing.Universal.Win10
                                 perfTextBlock.Foreground = perfTextForeground;
                             };
 
-                            controlAckTextBlock.Text = controlAckText;
+                            controlAckTextBlock.Text = _controlAckText.ToString();
                             exceptionTextBlock.Text = exceptionText ?? "";
                         });
                     }
@@ -545,7 +703,8 @@ namespace SharpRacing.Universal.Win10
             string servoSetupText, 
             string liftPulsesRatiosText, 
             string propPulsesRatiosText, 
-            string servoPulseCorrectionText)
+            string servoPulseCorrectionText,
+            string boostSetup)
         {
             var a = _setupDialog.SocketAddress.Trim().Split(':');
             if (a.Length == 2)
@@ -565,17 +724,19 @@ namespace SharpRacing.Universal.Win10
                 this._connection.Socket = null;
             }
 
-            if (!UpdateSetupPacket(liftSetupText, propSetupText, servoSetupText, liftPulsesRatiosText, propPulsesRatiosText, servoPulseCorrectionText))
+            if (!UpdateSetupPacket(liftSetupText, propSetupText, servoSetupText, liftPulsesRatiosText, propPulsesRatiosText, servoPulseCorrectionText, boostSetup))
                 return;
-
-            HovercraftRequestResult response = null;
-            string exceptionMessage = null;
 
             await _semaphoreSlim.WaitAsync();
             try
             {
+                HovercraftRequestResult response = null;
+                string exceptionMessage = null;
+
                 response = _setupRecycledResult;
                 _setupRecycledResult.Recycle();
+                _setupAckText.Clear();
+
                 try
                 {
                     await SendHovercraftData(_connection, _setupPacket, response);
@@ -587,12 +748,22 @@ namespace SharpRacing.Universal.Win10
 
                 if (ReferenceEquals(exceptionMessage, null) && !ReferenceEquals(response, null) && ReferenceEquals(response.Exception, null))
                 {
-                    setupAckTextBlock.Text = response.AckResponse ?? "(null)";
+                    if (response.AckResponseLength > 0)
+                    {
+                        _setupAckText.Append(response.AckResponseBuffer, 0, response.AckResponseLength);
+                    }
+
+                    setupAckTextBlock.Text = _setupAckText.ToString();
                     exceptionTextBlock.Text = String.Empty;
                     return;
                 }
 
-                setupAckTextBlock.Text = !!ReferenceEquals(response, null) ? response.AckResponse ?? "(null)" : "";
+                if (response.AckResponseLength > 0)
+                {
+                    _setupAckText.Append(response.AckResponseBuffer, 0, response.AckResponseLength);
+                }
+
+                setupAckTextBlock.Text = _setupAckText.ToString();
 
                 _sbSetup.Clear();
                 _sbSetup.Append(exceptionMessage ?? String.Empty);
@@ -631,7 +802,20 @@ namespace SharpRacing.Universal.Win10
 
                 inputStream = socket.InputStream.AsStreamForRead();
                 var reader = new StreamReader(inputStream);
-                result.AckResponse = await reader.ReadLineAsync();
+
+                //result.AckResponse = await reader.ReadLineAsync();
+                result.AckResponseLength = await reader.ReadAsync(result.AckResponseBuffer, 0, result.AckResponseBuffer.Length);
+
+                //j'enleve le CRLF a la main car je ne veux pas toucher au code du ESP32 pour ne pas perturber l'appli de Marc
+                if (result.AckResponseLength > 2)
+                {
+                    if (result.AckResponseBuffer[result.AckResponseLength-2] == 13 && result.AckResponseBuffer[result.AckResponseLength - 1] == 10)
+                    {
+                        result.AckResponseBuffer[result.AckResponseLength-2] = (char)0x00;
+                        result.AckResponseBuffer[result.AckResponseLength-1] = (char)0x00;
+                        result.AckResponseLength = result.AckResponseLength-2;
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -767,7 +951,8 @@ namespace SharpRacing.Universal.Win10
             string servoSetupText, 
             string liftPulsesRatiosText, 
             string propPulsesRatiosText, 
-            string servoPulseCorrectionText)
+            string servoPulseCorrectionText,
+            string boostSetupText)
         {
             bool result = false;
             try
@@ -792,6 +977,8 @@ namespace SharpRacing.Universal.Win10
 
                 Int16 servoCorrection = Int16.Parse(servoPulseCorrectionText);
 
+                UInt16 boostSetup = UInt16.Parse(boostSetupText);
+
                 int offset = 0;
                 WriteByte(2, _setupPacket, ref offset);
 
@@ -807,6 +994,8 @@ namespace SharpRacing.Universal.Win10
 
                 WriteBytes(servoCorrection, _setupPacket, ref offset);
 
+                WriteBytes(boostSetup, _setupPacket, ref offset);
+
                 result = true;
             }
             catch (Exception ex)
@@ -820,12 +1009,15 @@ namespace SharpRacing.Universal.Win10
 
         private class HovercraftRequestResult
         {
-            public string AckResponse = String.Empty;
+            public char[] AckResponseBuffer = new char[1024];
+
+            public int AckResponseLength = 0;
+
             public string Exception = null;
 
             public void Recycle()
             {
-                AckResponse = null;
+                //Array.Clear(AckResponseBuffer, 0, AckResponseBuffer.Length);
                 Exception = null;
             }
         }
@@ -842,7 +1034,6 @@ namespace SharpRacing.Universal.Win10
 
         private class Connection
         {
-
             public HostName Host = new HostName(MainPage.DefaultHost);
 
             public string Port = MainPage.Port;

@@ -7,8 +7,9 @@ namespace SharpRacing.Universal.Win10
         // 500Hz | 16bit | 0 ... 100 | 32767 ... 65535 -> pulse is 1ms ... 2ms 
         private const string DefaultEscSetupText = "500;16;0;100;32767;65535";
 
-        // 500Hz | 16bit | 0 ... 100 | 32767 ... 65535 -> pulse is 1ms ... 2ms 
-        private const string DefaultServoSetupText = "500;16;0;100;32767;65535";
+        private const string DefaultServoSetupText = "500;16;0;100;36863;61439";
+
+        private const string DefaultPropEscSetupText = "500;16;0;100;32767;49151";
 
         private const string DefaultSocket = "192.168.4.1:8077";
 
@@ -19,6 +20,8 @@ namespace SharpRacing.Universal.Win10
         private const string DefaultPropPulsesRatios = "100;100";
 
         private const string DefaultServoPulseCorrection = "0";
+
+        private const string DefaultBoost = "51199";
 
         private string _socketBackup;
 
@@ -36,13 +39,15 @@ namespace SharpRacing.Universal.Win10
 
         private string _servoPulseCorrectionBackup;
 
+        private string _boostBackup;
+
         public SetupDialog()
         {
             this.InitializeComponent();
 
             socketTextBox.Text = DefaultSocket;
             liftSetupTextBox.Text = DefaultEscSetupText;
-            propSetupTextBox.Text = DefaultEscSetupText;
+            propSetupTextBox.Text = DefaultPropEscSetupText;
 
             servoSetupTextBox.Text = DefaultServoSetupText;
             controlIntervalMillisecondsTextBox.Text = DefaultControlIntervalMilliseconds;
@@ -50,6 +55,7 @@ namespace SharpRacing.Universal.Win10
             liftPulsesRatiosTextBox.Text = DefaultLiftPulsesRatios;
             propPulsesRatiosTextBox.Text = DefaultPropPulsesRatios;
             servoPulseCorrectionTextBox.Text = DefaultServoPulseCorrection;
+            boostSetupTextBox.Text = DefaultBoost;
         }
 
         public string SocketAddress
@@ -100,6 +106,12 @@ namespace SharpRacing.Universal.Win10
             set { servoPulseCorrectionTextBox.Text = value; }
         }
 
+        public string BoostSetup
+        {
+            get { return boostSetupTextBox.Text; }
+            set { boostSetupTextBox.Text = value; }
+        }
+
         private void ContentDialog_Opened(ContentDialog sender, ContentDialogOpenedEventArgs args)
         {
             _socketBackup = socketTextBox.Text;
@@ -110,6 +122,7 @@ namespace SharpRacing.Universal.Win10
             _liftPulseRatiosBackup = liftPulsesRatiosTextBox.Text;
             _propPulseRatiosBackup = propPulsesRatiosTextBox.Text;
             _servoPulseCorrectionBackup = servoPulseCorrectionTextBox.Text;
+            _boostBackup = boostSetupTextBox.Text;
         }
 
         //PrimaryButtonText="Cancel"
@@ -124,6 +137,7 @@ namespace SharpRacing.Universal.Win10
             liftPulsesRatiosTextBox.Text = _liftPulseRatiosBackup;
             propPulsesRatiosTextBox.Text = _propPulseRatiosBackup;
             servoPulseCorrectionTextBox.Text = _servoPulseCorrectionBackup;
+            boostSetupTextBox.Text = _boostBackup;
         }
 
         //SecondaryButtonText="CONFIRM"

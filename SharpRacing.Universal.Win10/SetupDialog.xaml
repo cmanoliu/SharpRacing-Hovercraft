@@ -25,58 +25,66 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
-        <TextBlock Text="Socket" Grid.Row="0" Grid.Column="0"  
+        
+        <TextBlock Text="Socket" Grid.Row="2" Grid.Column="0"  
                     VerticalAlignment="Center" HorizontalAlignment="Left" />
-        <TextBox x:Name="socketTextBox" Grid.Row="0" Grid.Column="1"
+        <TextBox x:Name="socketTextBox" Grid.Row="2" Grid.Column="1"
                     HorizontalAlignment="Stretch" VerticalAlignment="Center"
                     TextAlignment="Right" 
                     Text="192.168.4.1:8077"/>
 
-        <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" 
+        <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal" 
                     HorizontalAlignment="Right" >
             <TextBlock Text=" ms" VerticalAlignment="Center" />
             <TextBox x:Name="controlIntervalMillisecondsTextBox" 
                      Text="0" Width="96" TextAlignment="Right" />
         </StackPanel>
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Text="Servo" 
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Servo" 
                    VerticalAlignment="Center" HorizontalAlignment="Left" />
-        <TextBox x:Name="servoSetupTextBox" Grid.Row="2" Grid.Column="1" 
+        <TextBox x:Name="servoSetupTextBox" Grid.Row="3" Grid.Column="1" 
                  HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                 Text="500;16;0;100;32767;65535" TextAlignment="Right"/>
-        <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal" 
+                 Text="500;16;0;100;36863;61439" TextAlignment="Right"/>
+        <StackPanel Grid.Row="3" Grid.Column="2" Orientation="Horizontal" 
                     HorizontalAlignment="Right" >
             <TextBlock Text=" trim" VerticalAlignment="Center" />
             <TextBox x:Name="servoPulseCorrectionTextBox" VerticalAlignment="Center"
                      Text="-128" Width="96" TextAlignment="Right" />
         </StackPanel>
 
-        <TextBlock Grid.Row="3" Grid.Column="0" Text="Lift" 
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Lift" 
                    VerticalAlignment="Center" HorizontalAlignment="Left" />
-        <TextBox x:Name="liftSetupTextBox" Grid.Row="3" Grid.Column="1" 
+        <TextBox x:Name="liftSetupTextBox" Grid.Row="4" Grid.Column="1" 
                  HorizontalAlignment="Stretch" VerticalAlignment="Center"
                  Text="500;16;0;100;32767;65535" TextAlignment="Right"/>
-        <StackPanel Grid.Row="3" Grid.Column="2" Orientation="Horizontal" 
+        <StackPanel Grid.Row="4" Grid.Column="2" Orientation="Horizontal" 
                     HorizontalAlignment="Right" >
             <TextBlock Text=" p1%;p2%" VerticalAlignment="Center" />
             <TextBox x:Name="liftPulsesRatiosTextBox" VerticalAlignment="Center"
                      Text="100%;100%" Width="96" TextAlignment="Right" />
         </StackPanel>
 
-        <TextBlock Grid.Row="4" Grid.Column="0" Text="Prop" 
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="Prop" 
                    VerticalAlignment="Center" HorizontalAlignment="Left" />
-        <TextBox x:Name="propSetupTextBox" Grid.Row="4" Grid.Column="1" 
+        <TextBox x:Name="propSetupTextBox" Grid.Row="5" Grid.Column="1" 
                  HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                 Text="500;16;0;100;32767;65535" TextAlignment="Right"/>
-        <StackPanel Grid.Row="4" Grid.Column="2" Orientation="Horizontal"
+                 Text="500;16;0;100;32767;49151" TextAlignment="Right"/>
+        <StackPanel Grid.Row="5" Grid.Column="2" Orientation="Horizontal"
                     HorizontalAlignment="Right" >
             <TextBlock Text=" p1%;p2%" VerticalAlignment="Center" />
             <TextBox x:Name="propPulsesRatiosTextBox" VerticalAlignment="Center"
                      Text="100%;100%" Width="96" TextAlignment="Right"/>
         </StackPanel>
 
+        <TextBlock Grid.Row="6" Grid.Column="0" Text="Boost" 
+                   VerticalAlignment="Center" HorizontalAlignment="Left" />
+        <TextBox x:Name="boostSetupTextBox" Grid.Row="6" Grid.Column="1" 
+                 HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                 Text="51199" TextAlignment="Right"/>
+        
     </Grid>
 
 </ContentDialog>
