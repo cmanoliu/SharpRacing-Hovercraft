@@ -1,7 +1,7 @@
 # SharpRacing-Hovercraft
 
-Video (beware, the sound is very loud)
-https://raw.githubusercontent.com/cmanoliu/SharpRacing-Hovercraft/master/sharpracing%20hovercraft.mp4
+Video (very loud!)
+https://user-images.githubusercontent.com/10958934/124303176-6a33f500-db62-11eb-9d05-b0687fd6534e.mp4
 
 The Fusion 360 hovercraft model
 [![alt hovercraft model](https://raw.githubusercontent.com/cmanoliu/SharpRacing-Hovercraft/master/hovercraft_fusion360.png)](http://a360.co/2DDNwru)
