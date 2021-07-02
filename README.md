@@ -1,6 +1,6 @@
 # SharpRacing-Hovercraft
 
-Video
+Video (beware, the sound is very loud)
 ![sharpracing hovercraft.mp4](https://raw.githubusercontent.com/cmanoliu/SharpRacing-Hovercraft/master/sharpracing%20hovercraft.mp4)
 
 The Fusion 360 hovercraft model
