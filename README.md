@@ -6,8 +6,8 @@ The Fusion 360 hovercraft model
 The UWP application 
 ![alt windows phone app](https://raw.githubusercontent.com/cmanoliu/SharpRacing-Hovercraft/master/windows_phone_app.png)
 
-Photos
-![alt windows phone app](https://raw.githubusercontent.com/cmanoliu/SharpRacing-Hovercraft/master/sharpracing%20hovercraft.PNG)
+Video
+![alt video](https://raw.githubusercontent.com/cmanoliu/SharpRacing-Hovercraft/master/sharpracing%20hovercraft.mp4)
 
-Video (Black model)
-![alt windows phone app](https://raw.githubusercontent.com/cmanoliu/SharpRacing-Hovercraft/master/sharpracing%20hovercraft.m4v)
+Photos
+![alt photos](https://raw.githubusercontent.com/cmanoliu/SharpRacing-Hovercraft/master/sharpracing%20hovercraft.PNG)
